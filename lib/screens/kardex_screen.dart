@@ -68,20 +68,6 @@ class _KardexScreenState extends State<KardexScreen> {
                                   item['fecha'] ?? '',
                                   style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
                                 ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: puntos < 0 ? Colors.red.shade100 : Colors.green.shade100,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    '$puntos pts',
-                                    style: TextStyle(
-                                      color: puntos < 0 ? Colors.red : Colors.green,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
                               ],
                             ),
                             const SizedBox(height: 8),

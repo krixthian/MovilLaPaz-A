@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'mock_data_service.dart';
@@ -6,12 +8,37 @@ import 'mock_data_service.dart';
 class ApiService {
   // DEMO MODE: Set to true to use mock data without server
   static const bool useMockData = false;
+  static const Duration timeoutDuration = Duration(seconds: 10);
 
-  // Server URL - Using local network IP for physical device
+  // Server URL - Production
   static String get baseUrl {
-    // For physical device APK, use the PC's local network IP
-    return 'http://10.0.7.218:8000/api/v1';
-    //return 'http://192.168.0.14:8000/api/v1';
+    return 'https://unidad-educativa-la-paz-a.onrender.com/api/v1';
+  }
+
+  // Generic request wrapper
+  Future<Map<String, dynamic>> _request(Future<http.Response> Function() requestFn) async {
+    try {
+      final response = await requestFn().timeout(timeoutDuration);
+      
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return jsonDecode(response.body);
+      } else if (response.statusCode == 400) {
+        // Bad Request usually means validation error or wrong credentials in login
+        return {'ok': false, 'error': 'Usuario o contraseña incorrectos'};
+      } else if (response.statusCode == 401) {
+        return {'ok': false, 'error': 'Sesión expirada o no autorizada'};
+      } else if (response.statusCode == 500) {
+        return {'ok': false, 'error': 'Error interno del servidor'};
+      } else {
+        return {'ok': false, 'error': 'Error ${response.statusCode}'};
+      }
+    } on SocketException {
+      return {'ok': false, 'error': 'No hay conexión a internet'};
+    } on TimeoutException {
+      return {'ok': false, 'error': 'Tiempo de espera agotado'};
+    } catch (e) {
+      return {'ok': false, 'error': 'Error inesperado: $e'};
+    }
   }
 
   Future<Map<String, dynamic>> login(String ci, String password) async {
@@ -20,21 +47,11 @@ class ApiService {
     }
 
     final url = Uri.parse('$baseUrl/login/');
-    try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'ci': ci, 'password': password}),
-      );
-
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      } else {
-        return {'ok': false, 'error': 'Error ${response.statusCode}'};
-      }
-    } catch (e) {
-      return {'ok': false, 'error': e.toString()};
-    }
+    return _request(() => http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'ci': ci, 'password': password}),
+    ));
   }
 
   Future<Map<String, dynamic>> getPerfil(String ci) async {
@@ -43,15 +60,7 @@ class ApiService {
     }
 
     final url = Uri.parse('$baseUrl/perfil/?ci_estudiante=$ci');
-    try {
-      final response = await http.get(url);
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      }
-      return {'ok': false, 'error': 'Error ${response.statusCode}'};
-    } catch (e) {
-      return {'ok': false, 'error': e.toString()};
-    }
+    return _request(() => http.get(url));
   }
 
   Future<Map<String, dynamic>> getAsistencia(String ci) async {
@@ -60,15 +69,7 @@ class ApiService {
     }
 
     final url = Uri.parse('$baseUrl/asistencia/?ci_estudiante=$ci');
-    try {
-      final response = await http.get(url);
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      }
-      return {'ok': false, 'error': 'Error ${response.statusCode}'};
-    } catch (e) {
-      return {'ok': false, 'error': e.toString()};
-    }
+    return _request(() => http.get(url));
   }
 
   Future<Map<String, dynamic>> getKardex(String ci) async {
@@ -77,15 +78,7 @@ class ApiService {
     }
 
     final url = Uri.parse('$baseUrl/kardex/?ci_estudiante=$ci');
-    try {
-      final response = await http.get(url);
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      }
-      return {'ok': false, 'error': 'Error ${response.statusCode}'};
-    } catch (e) {
-      return {'ok': false, 'error': e.toString()};
-    }
+    return _request(() => http.get(url));
   }
 
   Future<Map<String, dynamic>> getCitaciones(String ciEstudiante) async {
@@ -94,16 +87,7 @@ class ApiService {
     }
 
     final url = Uri.parse('$baseUrl/citaciones/?ci_estudiante=$ciEstudiante');
-    try {
-      final response = await http.get(url);
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      } else {
-        return {'ok': false, 'error': 'Error ${response.statusCode}'};
-      }
-    } catch (e) {
-      return {'ok': false, 'error': e.toString()};
-    }
+    return _request(() => http.get(url));
   }
 
   // Regente: Obtener estudiantes de un curso
@@ -113,15 +97,7 @@ class ApiService {
     }
 
     final url = Uri.parse('$baseUrl/estudiantes-curso/?curso_id=$cursoId');
-    try {
-      final response = await http.get(url);
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      }
-      return {'ok': false, 'error': 'Error ${response.statusCode}'};
-    } catch (e) {
-      return {'ok': false, 'error': e.toString()};
-    }
+    return _request(() => http.get(url));
   }
 
   // Regente: Obtener ítems de kárdex
@@ -131,15 +107,7 @@ class ApiService {
     }
 
     final url = Uri.parse('$baseUrl/kardex-items/');
-    try {
-      final response = await http.get(url);
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      }
-      return {'ok': false, 'error': 'Error ${response.statusCode}'};
-    } catch (e) {
-      return {'ok': false, 'error': e.toString()};
-    }
+    return _request(() => http.get(url));
   }
 
   // Regente: Enviar asistencia
@@ -149,24 +117,14 @@ class ApiService {
     }
 
     final url = Uri.parse('$baseUrl/regente/asistencia/');
-    try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'fecha': fecha,
-          'asistencias': asistencias,
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      } else {
-        return {'ok': false, 'error': 'Error ${response.statusCode}'};
-      }
-    } catch (e) {
-      return {'ok': false, 'error': e.toString()};
-    }
+    return _request(() => http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'fecha': fecha,
+        'asistencias': asistencias,
+      }),
+    ));
   }
 
   // Regente: Registrar Kárdex
@@ -176,24 +134,14 @@ class ApiService {
     }
 
     final url = Uri.parse('$baseUrl/regente/kardex/');
-    try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'ci_estudiante': ciEstudiante,
-          'item_id': itemId,
-          'observacion': observacion,
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      } else {
-        return {'ok': false, 'error': 'Error ${response.statusCode}'};
-      }
-    } catch (e) {
-      return {'ok': false, 'error': e.toString()};
-    }
+    return _request(() => http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'ci_estudiante': ciEstudiante,
+        'item_id': itemId,
+        'observacion': observacion,
+      }),
+    ));
   }
 }

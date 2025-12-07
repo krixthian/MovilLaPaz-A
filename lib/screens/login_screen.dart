@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../utils/validators.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,29 +13,49 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _ciController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
   void _login() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final ci = _ciController.text.trim();
     final password = _passwordController.text.trim();
-
-    if (ci.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor ingrese CI y contraseña')),
-      );
-      return;
-    }
 
     final success = await authProvider.login(ci, password);
     if (success && mounted) {
       // Navigate based on role
       final rol = authProvider.rol.toLowerCase();
+      
+      // Bloquear acceso a Directores
       if (rol.contains('director')) {
-        Navigator.pushReplacementNamed(context, '/director');
-      } else if (rol.contains('regente')) {
+        authProvider.logout(); // Cerrar sesión inmediatamente
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Acceso no permitido. Use la versión web.'),
+            backgroundColor: Colors.red.shade700,
+          ),
+        );
+        return;
+      }
+
+      if (rol.contains('regente')) {
         Navigator.pushReplacementNamed(context, '/regente');
       } else if (rol.contains('secretaria')) {
-        Navigator.pushReplacementNamed(context, '/secretaria');
+        // También bloqueamos secretaria si la app es solo para regente y padres, 
+        // pero la solicitud específica fue "director". Dejaré secretaria por si acaso, 
+        // o mejor bloqueo ambos si es enfoque "solo regente/padre".
+        // User said: "app solo sera para el regente y el padre de familia/estudiante"
+        // So I should block Secretary too.
+        authProvider.logout();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Acceso no permitido. Use la versión web.'),
+            backgroundColor: Colors.red.shade700,
+          ),
+        );
       } else {
         // Default to parent/student home
         Navigator.pushReplacementNamed(context, '/home');
@@ -59,52 +80,59 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.school, size: 80, color: Color(0xFF1A237E)),
-              const SizedBox(height: 20),
-              const Text(
-                'Unidad Educativa La Paz',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF1A237E)),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 40),
-              TextField(
-                controller: _ciController,
-                decoration: const InputDecoration(
-                  labelText: 'Cédula de Identidad',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.person),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.school, size: 80, color: Color(0xFF1A237E)),
+                const SizedBox(height: 20),
+                const Text(
+                  'Unidad Educativa La Paz',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF1A237E)),
+                  textAlign: TextAlign.center,
                 ),
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _passwordController,
-                decoration: const InputDecoration(
-                  labelText: 'Contraseña',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.lock),
-                ),
-                obscureText: true,
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: isLoading ? null : _login,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1A237E),
-                    foregroundColor: Colors.white,
+                const SizedBox(height: 40),
+                  TextFormField(
+                    controller: _ciController,
+                    decoration: const InputDecoration(
+                      labelText: 'Cédula de Identidad',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.person),
+                      counterText: "", // Hides the character counter if desired, or remove to show 0/7
+                    ),
+                    keyboardType: TextInputType.number,
+                    maxLength: 7, // Restricts input to 7 chars
+                    validator: Validators.validateCI,
                   ),
-                  child: isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('INGRESAR', style: TextStyle(fontSize: 16)),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _passwordController,
+                  decoration: const InputDecoration(
+                    labelText: 'Contraseña',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.lock),
+                  ),
+                  obscureText: true,
+                  validator: Validators.validatePassword,
                 ),
-              ),
-            ],
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: isLoading ? null : _login,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1A237E),
+                      foregroundColor: Colors.white,
+                    ),
+                    child: isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text('INGRESAR', style: TextStyle(fontSize: 16)),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
+import '../utils/validators.dart';
 
 class RegistroKardexScreen extends StatefulWidget {
   const RegistroKardexScreen({super.key});
@@ -153,10 +154,10 @@ class _RegistroKardexScreenState extends State<RegistroKardexScreen> {
                       value: _selectedItemId,
                       decoration: const InputDecoration(border: OutlineInputBorder()),
                       items: _itemsKardex.map((item) {
-                        final pts = item['puntos'] > 0 ? "+${item['puntos']}" : "${item['puntos']}";
+                        // User requested to remove points display: "(-10pts)"
                         return DropdownMenuItem<int>(
                           value: item['id'],
-                          child: Text("${item['descripcion']} ($pts pts)", overflow: TextOverflow.ellipsis),
+                          child: Text(item['descripcion'], overflow: TextOverflow.ellipsis),
                         );
                       }).toList(),
                       onChanged: (val) {
@@ -175,6 +176,8 @@ class _RegistroKardexScreenState extends State<RegistroKardexScreen> {
                         border: OutlineInputBorder(),
                       ),
                       maxLines: 3,
+                      maxLength: 200,
+                      validator: (val) => Validators.validateRequiredText(val, minLength: 0),
                     ),
 
                     const SizedBox(height: 30),
