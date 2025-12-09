@@ -23,10 +23,12 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   void _loadAttendance() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final ci = authProvider.userData?['ciEstudiante'] ?? '';
+    
+    final currentHijo = authProvider.currentHijo;
+    final ci = currentHijo?['ci'] ?? authProvider.userData?['ciEstudiante'] ?? '';
 
-    if (ci.isNotEmpty) {
-      final data = await _apiService.getAsistencia(ci);
+    if (ci.toString().isNotEmpty) {
+      final data = await _apiService.getAsistencia(ci.toString());
       if (mounted) {
         setState(() {
           if (data['ok'] == true) {

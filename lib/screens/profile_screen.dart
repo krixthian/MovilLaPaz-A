@@ -23,10 +23,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _loadProfile() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final ci = authProvider.userData?['ciEstudiante'] ?? '';
+    // Prioridad: Hijo seleccionado > Usuario logueado (caso estudiante)
+    final currentHijo = authProvider.currentHijo;
+    final ci = currentHijo?['ci'] ?? authProvider.userData?['ciEstudiante'] ?? '';
     
-    if (ci.isNotEmpty) {
-      final data = await _apiService.getPerfil(ci);
+    if (ci.toString().isNotEmpty) {
+      final data = await _apiService.getPerfil(ci.toString());
       if (mounted) {
         setState(() {
           _profileData = data;

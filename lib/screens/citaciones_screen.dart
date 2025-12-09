@@ -27,7 +27,7 @@ class _CitacionesScreenState extends State<CitacionesScreen> {
     final currentHijo = auth.currentHijo;
     
     // Si es padre y tiene hijo seleccionado, usar su CI. Si no, usar el del usuario (caso estudiante)
-    final ci = currentHijo != null ? currentHijo['ci'] : auth.userData?['usuario_ci'];
+    final ci = currentHijo != null ? currentHijo['ci'] : auth.userData?['ciEstudiante'] ?? auth.userData?['usuario_ci'];
 
     if (ci == null) {
       setState(() {
@@ -37,7 +37,7 @@ class _CitacionesScreenState extends State<CitacionesScreen> {
       return;
     }
 
-    final result = await _apiService.getCitaciones(ci);
+    final result = await _apiService.getCitaciones(ci.toString());
 
     if (mounted) {
       setState(() {

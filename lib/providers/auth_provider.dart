@@ -86,6 +86,10 @@ class AuthProvider with ChangeNotifier {
         // Reconectar notificaciones
         if (_userData?['usuario_id'] != null) {
           _notificationService.connect(_userData!['usuario_id'].toString());
+          // Actualizar nombres de estudiantes
+          if (hijos.isNotEmpty) {
+             _notificationService.updateStudentNames(hijos);
+          }
         }
 
         notifyListeners();
@@ -126,6 +130,10 @@ class AuthProvider with ChangeNotifier {
       // Conectar notificaciones
       if (result['usuario_id'] != null) {
         _notificationService.connect(result['usuario_id'].toString());
+        // Actualizar nombres de estudiantes para notificaciones
+        if (hijos.isNotEmpty) {
+           _notificationService.updateStudentNames(hijos);
+        }
       }
       
       // Guardar sesión

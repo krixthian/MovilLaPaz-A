@@ -15,6 +15,19 @@ class NotificationService {
   StreamSubscription? _subscription;
   bool _isConnected = false;
   String? _currentUserId;
+  Map<String, String> _studentNames = {};
+
+  void updateStudentNames(List<dynamic> children) {
+    _studentNames.clear();
+    for (var child in children) {
+      final ci = child['ci']?.toString() ?? child['ci_estudiante']?.toString() ?? child['id']?.toString();
+      final name = child['nombre_completo'] ?? child['nombreEstudiante'];
+      if (ci != null && name != null) {
+        _studentNames[ci] = name.toString();
+      }
+    }
+    print("NotificationService: Nombres de estudiantes actualizados: $_studentNames");
+  }
 
   // Inicializar notificaciones locales
   Future<void> init() async {
@@ -107,10 +120,27 @@ class NotificationService {
       
       // Verificar si es una notificación de citación
       if (data['type'] == 'notify.unread' && data['event'] == 'citacion') {
+        String? nombreEstudiante = data['nombre_estudiante'];
+        
+        // Si no viene el nombre, buscarlo localmente por CI
+        if (nombreEstudiante == null) {
+          final ci = data['ci_estudiante']?.toString() ?? 
+                     data['ci']?.toString() ?? 
+                     data['estudiante_ci']?.toString() ??
+                     data['student_ci']?.toString();
+                     
+          if (ci != null) {
+            nombreEstudiante = _studentNames[ci];
+          }
+        }
+        
+        // Fallback final
+        nombreEstudiante ??= 'su hijo(a)';
+
         _showNotification(
           id: data['citacion_id'] ?? 0,
-          title: "Nueva Citación",
-          body: data['mensaje'] ?? "Tienes una nueva citación.",
+          title: "Citación Agendada",
+          body: "Tienes una nueva citación agendada para $nombreEstudiante.",
           payload: jsonEncode(data),
         );
       }
